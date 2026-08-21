@@ -1,0 +1,1609 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Grievance Analytics Dashboard</title>
+<link rel="stylesheet" href="https://unpkg.com/@tabler/icons-webfont@2.47.0/tabler-icons.min.css"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0f1117;--bg2:#1a1d27;--bg3:#22263a;--bg4:#2a2f45;
+  --accent:#4f8ef7;--accent2:#7c5cfc;--accent3:#22d3a5;--accent4:#f7a14f;--accent5:#f75f5f;
+  --text:#e8eaf0;--text2:#9aa3bf;--text3:#5a6380;
+  --border:#2e3350;--border2:#3d4570;
+  --green:#22d3a5;--red:#f75f5f;--yellow:#f7c34f;--purple:#7c5cfc;--blue:#4f8ef7;
+  --radius:10px;--radius-sm:6px;
+}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:13px}
+
+/* TOP NAV */
+.topbar{background:var(--bg2);border-bottom:1px solid var(--border);padding:0 20px;display:flex;align-items:center;justify-content:space-between;height:52px;position:sticky;top:0;z-index:100}
+.topbar-left{display:flex;align-items:center;gap:10px}
+.topbar-brand{font-size:14px;font-weight:600;color:var(--text);letter-spacing:.3px}
+.topbar-badge{background:var(--accent);color:#fff;font-size:10px;padding:2px 8px;border-radius:20px;font-weight:600}
+.topbar-right{display:flex;align-items:center;gap:12px}
+.upload-btn{background:var(--accent);color:#fff;border:none;padding:7px 16px;border-radius:var(--radius-sm);font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px;transition:opacity .2s}
+.upload-btn:hover{opacity:.85}
+.last-updated{font-size:11px;color:var(--text3)}
+
+/* LAYOUT */
+.main{padding:16px 20px;display:flex;flex-direction:column;gap:14px}
+
+/* SLICERS */
+.slicers-panel{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:12px 16px}
+.slicers-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.slicers-title{font-size:11px;font-weight:700;color:var(--text2);letter-spacing:1px;text-transform:uppercase}
+.clear-filters-btn{font-size:11px;color:var(--accent);background:none;border:none;cursor:pointer;display:flex;align-items:center;gap:4px}
+.clear-filters-btn:hover{text-decoration:underline}
+.slicers-row{display:flex;flex-wrap:wrap;gap:10px}
+.slicer-group{display:flex;flex-direction:column;gap:4px;flex:1;min-width:130px}
+.slicer-label{font-size:10px;font-weight:700;color:var(--text3);letter-spacing:.8px;text-transform:uppercase}
+.slicer-select{background:var(--bg3);border:1px solid var(--border);color:var(--text);border-radius:var(--radius-sm);padding:5px 10px;font-size:12px;cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%239aa3bf' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 8px center}
+.slicer-select:focus{outline:none;border-color:var(--accent)}
+
+/* TIMELINE */
+.timeline-panel{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:12px 16px}
+.timeline-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.timeline-title{font-size:11px;font-weight:700;color:var(--text2);letter-spacing:1px;text-transform:uppercase}
+.timeline-controls{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.timeline-btn{padding:4px 12px;border:1px solid var(--border2);border-radius:20px;background:transparent;color:var(--text2);font-size:11px;cursor:pointer;transition:all .2s}
+.timeline-btn.active,.timeline-btn:hover{background:var(--accent);border-color:var(--accent);color:#fff}
+.date-range{display:flex;align-items:center;gap:8px}
+.date-input{background:var(--bg3);border:1px solid var(--border);color:var(--text);border-radius:var(--radius-sm);padding:4px 10px;font-size:12px}
+.date-input:focus{outline:none;border-color:var(--accent)}
+
+/* SMART KPI CARDS (Change III/IV) */
+.smart-kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+.smart-kpi{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:16px;position:relative;overflow:hidden;transition:border-color .2s}
+.smart-kpi:hover{border-color:var(--border2)}
+.smart-kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--skpi-color)}
+.smart-kpi-label{font-size:9px;font-weight:700;color:var(--text3);letter-spacing:1px;text-transform:uppercase;margin-bottom:6px;display:flex;align-items:center;gap:5px}
+.smart-kpi-label i{color:var(--skpi-color)}
+.smart-kpi-main{font-size:20px;font-weight:700;color:var(--text);margin-bottom:2px}
+.smart-kpi-name{font-size:13px;font-weight:600;color:var(--skpi-color);margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.smart-kpi-sub{font-size:11px;color:var(--text2)}
+.smart-kpi-extra{font-size:10px;color:var(--text3);margin-top:4px}
+
+/* STANDARD KPI GRID */
+
+
+/* CHARTS */
+.charts-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:14px}
+.chart-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:16px}
+.chart-title{font-size:13px;font-weight:600;color:var(--text);margin-bottom:4px;display:flex;align-items:center;gap:6px}
+.chart-title i{color:var(--accent4)}
+.chart-subtitle{font-size:11px;color:var(--text3);margin-bottom:14px}
+.chart-container{position:relative}
+.trend-toggle{display:flex;gap:6px;margin-bottom:10px}
+.trend-btn{padding:3px 10px;border:1px solid var(--border2);border-radius:20px;background:transparent;color:var(--text2);font-size:11px;cursor:pointer;transition:all .2s}
+.trend-btn.active{background:var(--accent);border-color:var(--accent);color:#fff}
+
+/* ROOT CAUSE BARS */
+.rc-bar-row{display:flex;align-items:center;gap:8px;margin-bottom:7px}
+.rc-label{font-size:11px;color:var(--text2);min-width:160px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rc-bar-wrap{flex:1;height:8px;background:var(--bg3);border-radius:4px;overflow:hidden}
+.rc-bar{height:100%;border-radius:4px;background:linear-gradient(90deg,#f75f5f,#f7a14f,#f7c34f,#22d3a5)}
+.rc-count{font-size:11px;font-weight:600;color:var(--text);min-width:50px;text-align:right}
+
+/* HEATMAP */
+.heatmap-wrap{overflow-x:auto;margin-top:8px}
+.heatmap-table{border-collapse:collapse;font-size:11px;width:100%}
+.heatmap-table th{padding:8px 8px;font-size:9px;font-weight:700;color:var(--text3);letter-spacing:.5px;text-transform:uppercase;border-bottom:1px solid var(--border);text-align:center;white-space:normal;word-break:break-word;min-width:80px;max-width:120px;vertical-align:bottom;line-height:1.3}
+.heatmap-table th:first-child{text-align:left;min-width:140px;max-width:180px;white-space:nowrap}
+.heatmap-table td{padding:5px 8px;border-bottom:1px solid var(--border);color:var(--text2);text-align:center;font-size:11px}
+.heatmap-table td:first-child{text-align:left;font-weight:600;color:var(--text);white-space:nowrap;min-width:140px}
+.heat-cell{border-radius:3px;padding:3px 6px;display:inline-block;font-weight:600;font-size:11px}
+.dl-btn{position:absolute;top:10px;right:10px;background:transparent;border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text3);font-size:10px;padding:3px 8px;cursor:pointer;display:flex;align-items:center;gap:4px;transition:all .2s;z-index:2}
+.dl-btn:hover{background:var(--accent);border-color:var(--accent);color:#fff}
+.dl-btn i{font-size:11px}
+.chart-card{position:relative}
+.analysis-card{position:relative}
+
+/* AI INSIGHTS */
+.ai-panel{background:var(--bg2);border:1px solid var(--border2);border-radius:var(--radius);padding:16px}
+.ai-panel-header{display:flex;align-items:center;gap:8px;margin-bottom:12px}
+.ai-panel-title{font-size:13px;font-weight:600;color:var(--text)}
+.ai-panel-sub{font-size:10px;color:var(--text3)}
+.ai-insights-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:10px}
+.ai-insight{background:var(--bg3);border-left:3px solid var(--insight-color);border-radius:var(--radius-sm);padding:10px 14px;font-size:11px;color:var(--text2);line-height:1.6}
+.ai-insight strong{color:var(--text)}
+
+/* DEEP ANALYSIS */
+.analysis-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+.analysis-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:14px}
+.analysis-card-title{font-size:11px;font-weight:700;color:var(--text3);letter-spacing:.7px;text-transform:uppercase;margin-bottom:10px}
+.rank-list{display:flex;flex-direction:column;gap:6px}
+.rank-item{display:flex;align-items:flex-start;gap:6px}
+.rank-num{font-size:10px;font-weight:700;color:var(--text3);min-width:16px;padding-top:1px}
+.rank-bar-wrap{flex:1;height:5px;background:var(--bg3);border-radius:3px;overflow:hidden;margin-top:5px}
+.rank-bar{height:100%;border-radius:3px;transition:width .5s}
+
+/* TABLE */
+.table-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:16px}
+.table-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.table-title{font-size:13px;font-weight:600;color:var(--text)}
+.table-search{background:var(--bg3);border:1px solid var(--border);color:var(--text);border-radius:var(--radius-sm);padding:5px 12px;font-size:12px;width:220px}
+.table-search:focus{outline:none;border-color:var(--accent)}
+.data-table{width:100%;border-collapse:collapse;font-size:12px}
+.data-table th{text-align:left;padding:8px 10px;font-size:10px;font-weight:700;color:var(--text3);letter-spacing:.7px;text-transform:uppercase;border-bottom:1px solid var(--border);cursor:pointer;user-select:none}
+.data-table th:hover{color:var(--accent)}
+.data-table td{padding:9px 10px;border-bottom:1px solid var(--border);color:var(--text2)}
+.data-table tr:last-child td{border-bottom:none}
+.data-table tr:hover td{background:var(--bg3);color:var(--text)}
+
+/* UPLOAD OVERLAY */
+.upload-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:200;align-items:center;justify-content:center}
+.upload-overlay.show{display:flex}
+.upload-box{background:var(--bg2);border:1px solid var(--border2);border-radius:14px;padding:32px;width:420px;text-align:center}
+.upload-icon{font-size:40px;color:var(--accent);margin-bottom:12px}
+.upload-box h3{font-size:16px;margin-bottom:6px}
+.upload-box p{font-size:12px;color:var(--text2);margin-bottom:20px}
+.file-drop{border:2px dashed var(--border2);border-radius:var(--radius);padding:24px;margin-bottom:16px;cursor:pointer;transition:border-color .2s}
+.file-drop:hover,.file-drop.dragover{border-color:var(--accent)}
+.file-drop-text{font-size:12px;color:var(--text2)}
+.upload-close{background:transparent;border:1px solid var(--border);color:var(--text2);padding:7px 20px;border-radius:var(--radius-sm);cursor:pointer;font-size:12px}
+.upload-close:hover{border-color:var(--accent);color:var(--accent)}
+
+/* SECTION HEADER */
+.section-header{display:flex;align-items:center;gap:8px}
+.section-label{font-size:11px;font-weight:700;color:var(--text3);letter-spacing:1px;text-transform:uppercase;white-space:nowrap}
+.section-line{flex:1;height:1px;background:var(--border)}
+
+/* PAGINATION */
+.pagination{display:flex;align-items:center;gap:6px;margin-top:12px;justify-content:flex-end}
+.page-btn{padding:4px 10px;border:1px solid var(--border);border-radius:var(--radius-sm);background:transparent;color:var(--text2);font-size:11px;cursor:pointer}
+.page-btn.active,.page-btn:hover{background:var(--accent);border-color:var(--accent);color:#fff}
+.page-info{font-size:11px;color:var(--text3)}
+
+/* SORTED RANKINGS */
+.sorted-rank-item{display:flex;justify-content:space-between;border-bottom:1px solid var(--border);padding:4px 0;font-size:11px;color:var(--text2)}
+.sorted-rank-item:last-child{border-bottom:none}
+
+@media(max-width:600px){.smart-kpi-grid{grid-template-columns:1fr 1fr}.charts-row{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <div class="topbar-left">
+    <i class="ti ti-layout-dashboard" style="font-size:20px;color:var(--accent)"></i>
+    <span class="topbar-brand">Grievance Analytics Dashboard</span>
+    <span class="topbar-badge" id="recordBadge">0 Records</span>
+  </div>
+  <div class="topbar-right">
+    <span class="last-updated" id="lastUpdated">No data loaded</span>
+    <button class="upload-btn" onclick="document.getElementById('uploadOverlay').classList.add('show')">
+      <i class="ti ti-upload"></i> Upload Excel
+    </button>
+  </div>
+</div>
+
+<!-- UPLOAD OVERLAY -->
+<div class="upload-overlay" id="uploadOverlay">
+  <div class="upload-box">
+    <div class="upload-icon"><i class="ti ti-file-spreadsheet"></i></div>
+    <h3>Upload Grievance Data</h3>
+    <p>Upload an Excel file (.xlsx / .xls / .csv) with the grievance dataset</p>
+    <div class="file-drop" id="fileDrop" onclick="document.getElementById('fileInput').click()">
+      <i class="ti ti-cloud-upload" style="font-size:28px;color:var(--accent);display:block;margin-bottom:8px"></i>
+      <div class="file-drop-text">Click to browse or drag & drop your file here</div>
+      <div style="font-size:11px;color:var(--text3);margin-top:4px">Supports .xlsx, .xls, .csv</div>
+    </div>
+    <input type="file" id="fileInput" accept=".xlsx,.xls,.csv" style="display:none" onchange="handleFile(this)"/>
+    <button class="upload-close" onclick="document.getElementById('uploadOverlay').classList.remove('show')">Cancel</button>
+  </div>
+</div>
+
+<!-- UPLOAD PROMPT — shown when no data -->
+<div id="uploadPrompt" style="background:linear-gradient(135deg,#1a1d27,#22263a);border-bottom:1px solid #3d4570;padding:14px 20px;display:flex;align-items:center;justify-content:center;gap:16px">
+  <i class="ti ti-upload" style="font-size:22px;color:var(--accent)"></i>
+  <span style="font-size:13px;color:var(--text2)">No data loaded — upload your Excel grievance file to populate the dashboard</span>
+  <button class="upload-btn" onclick="document.getElementById('uploadOverlay').classList.add('show')" style="padding:6px 18px">
+    <i class="ti ti-file-spreadsheet"></i> Upload Excel
+  </button>
+</div>
+
+<div class="main">
+
+<!-- I. SLICERS — Circle, Substation(2nd), Section(3rd), Feeder, Structure, Type, Reason, Source -->
+<div class="slicers-panel">
+  <div class="slicers-header">
+    <span class="slicers-title"><i class="ti ti-filter" style="font-size:12px;margin-right:4px"></i>Mandatory Multidimensional In-Memory Slicers</span>
+    <button class="clear-filters-btn" onclick="clearAllFilters()"><i class="ti ti-x" style="font-size:12px"></i> Clear Active Cross-Filters</button>
+  </div>
+  <div class="slicers-row">
+    <div class="slicer-group"><div class="slicer-label">Circle</div><select class="slicer-select" id="sl-circle" onchange="applyFilters()"><option value="">All CIRCLEs</option></select></div>
+    <div class="slicer-group"><div class="slicer-label">Section</div><select class="slicer-select" id="sl-section" onchange="applyFilters()"><option value="">All SECTIONs</option></select></div>
+    <div class="slicer-group"><div class="slicer-label">Substation</div><select class="slicer-select" id="sl-substation" onchange="applyFilters()"><option value="">All SUBSTATIONs</option></select></div>
+    <div class="slicer-group"><div class="slicer-label">Feeder</div><select class="slicer-select" id="sl-feeder" onchange="applyFilters()"><option value="">All FEEDERs</option></select></div>
+    <div class="slicer-group"><div class="slicer-label">Structure</div><select class="slicer-select" id="sl-structure" onchange="applyFilters()"><option value="">All STRUCTUREs</option></select></div>
+    <div class="slicer-group"><div class="slicer-label">Type</div><select class="slicer-select" id="sl-type" onchange="applyFilters()"><option value="">All GRIEVANCE TYPEs</option></select></div>
+    <div class="slicer-group"><div class="slicer-label">Reason</div><select class="slicer-select" id="sl-reason" onchange="applyFilters()"><option value="">All REASONs</option></select></div>
+    <div class="slicer-group"><div class="slicer-label">Source</div><select class="slicer-select" id="sl-source" onchange="applyFilters()"><option value="">All SOURCEs</option></select></div>
+  </div>
+</div>
+
+<!-- TIMELINE -->
+<div class="timeline-panel">
+  <div class="timeline-header">
+    <span class="timeline-title"><i class="ti ti-calendar-event" style="font-size:12px;margin-right:4px"></i>Timeline Filter</span>
+    <div class="timeline-controls">
+      <button class="timeline-btn active" onclick="setTimeline('all',this)">All Time</button>
+      <button class="timeline-btn" onclick="setTimeline('7d',this)">7 Days</button>
+      <button class="timeline-btn" onclick="setTimeline('30d',this)">30 Days</button>
+      <button class="timeline-btn" onclick="setTimeline('90d',this)">90 Days</button>
+      <button class="timeline-btn" onclick="setTimeline('6m',this)">6 Months</button>
+      <button class="timeline-btn" onclick="setTimeline('1y',this)">1 Year</button>
+      <div class="date-range">
+        <input type="date" class="date-input" id="dateFrom" onchange="applyFilters()"/>
+        <span style="color:var(--text3);font-size:11px">to</span>
+        <input type="date" class="date-input" id="dateTo" onchange="applyFilters()"/>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- KEY PERFORMANCE INDICATORS — Smart Highlights only -->
+<div class="section-header"><span class="section-label">Key Performance Indicators</span><div class="section-line"></div></div>
+<div class="smart-kpi-grid">
+  <div class="smart-kpi" style="--skpi-color:var(--blue)">
+    <button class="dl-btn" onclick="downloadKPI('circle')" title="Download Circle data"><i class="ti ti-download"></i>CSV</button>
+    <div class="smart-kpi-label"><i class="ti ti-map"></i>Most Affected Circle</div>
+    <div class="smart-kpi-name" id="skpiCircleName">—</div>
+    <div class="smart-kpi-main" id="skpiCircleCount">0</div>
+    <div class="smart-kpi-sub" id="skpiCircleSub">grievances</div>
+    <div class="smart-kpi-extra" id="skpiCircleTotal"></div>
+  </div>
+  <div class="smart-kpi" style="--skpi-color:var(--purple)">
+    <button class="dl-btn" onclick="downloadKPI('feeder')" title="Download Feeder data"><i class="ti ti-download"></i>CSV</button>
+    <div class="smart-kpi-label"><i class="ti ti-bolt"></i>Top Feeder</div>
+    <div class="smart-kpi-name" id="skpiFeederName">—</div>
+    <div class="smart-kpi-main" id="skpiFeederCount">0</div>
+    <div class="smart-kpi-sub" id="skpiFeederSub">complaints</div>
+    <div class="smart-kpi-extra" id="skpiFeederPct"></div>
+  </div>
+  <div class="smart-kpi" style="--skpi-color:var(--green)">
+    <button class="dl-btn" onclick="downloadKPI('structure')" title="Download Structure data"><i class="ti ti-download"></i>CSV</button>
+    <div class="smart-kpi-label"><i class="ti ti-building-factory"></i>Top Structure</div>
+    <div class="smart-kpi-name" id="skpiStructName">—</div>
+    <div class="smart-kpi-main" id="skpiStructCount">0</div>
+    <div class="smart-kpi-sub">complaints</div>
+  </div>
+  <div class="smart-kpi" style="--skpi-color:var(--yellow)">
+    <div class="smart-kpi-label"><i class="ti ti-transformer-bolt"></i>Top Substation</div>
+    <div class="smart-kpi-name" id="skpiSubName">—</div>
+    <div class="smart-kpi-main" id="skpiSubCount">0</div>
+    <div class="smart-kpi-sub">complaints</div>
+  </div>
+  <div class="smart-kpi" style="--skpi-color:var(--red)">
+    <button class="dl-btn" onclick="downloadKPI('all')" title="Download all filtered data"><i class="ti ti-download"></i>CSV</button>
+    <div class="smart-kpi-label"><i class="ti ti-file-report"></i>Total Grievances</div>
+    <div class="smart-kpi-main" id="skpiTotalCount">0</div>
+    <div class="smart-kpi-sub">Filtered records</div>
+  </div>
+</div>
+
+<!-- V. COMPLAINT TREND ANALYSIS (replaces old Grievances Over Time) + SOURCE CHART -->
+<div class="section-header"><span class="section-label">Visual Analytics</span><div class="section-line"></div></div>
+<div class="charts-row">
+  <div class="chart-card" style="grid-column:1/-1">
+    <button class="dl-btn" onclick="downloadChart('trend')" title="Download trend data"><i class="ti ti-download"></i>CSV</button>
+    <div class="chart-title"><i class="ti ti-chart-line"></i> Complaint Trend Analysis</div>
+    <div class="chart-subtitle">Grievance registrations over time — toggle granularity</div>
+    <div class="trend-toggle">
+      <button class="trend-btn" onclick="setTrend('hourly',this)">Hourly</button>
+      <button class="trend-btn active" onclick="setTrend('daily',this)">Daily</button>
+      <button class="trend-btn" onclick="setTrend('weekly',this)">Weekly</button>
+    </div>
+    <div class="chart-container" style="height:200px"><canvas id="chartTrend"></canvas></div>
+  </div>
+</div>
+
+<!-- VI. PEAK HOUR + ROOT CAUSE ANALYSIS (replaces old type donut + circle bar) -->
+<div class="charts-row">
+  <div class="chart-card">
+    <button class="dl-btn" onclick="downloadChart('daywise')" title="Download day-wise data"><i class="ti ti-download"></i>CSV</button>
+    <div class="chart-title"><i class="ti ti-calendar-week"></i> Day-wise Grievance Pattern</div>
+    <div class="chart-subtitle">Grievance volume by day of week — peak day highlighted in red</div>
+    <div class="chart-container" style="height:240px"><canvas id="chartPeakHour"></canvas></div>
+  </div>
+  <div class="chart-card">
+    <button class="dl-btn" onclick="downloadChart('rootcause')" title="Download reason data"><i class="ti ti-download"></i>CSV</button>
+    <div class="chart-title"><i class="ti ti-zoom-exclamation"></i> Root Cause Analysis</div>
+    <div class="chart-subtitle">Reasons sorted by volume — <span style="color:var(--yellow)">LM</span> = previous month count in brackets</div>
+    <div id="rcBars" style="margin-top:4px;max-height:240px;overflow-y:auto"></div>
+  </div>
+</div>
+
+<!-- SOURCE + PARETO (kept) -->
+<div class="charts-row">
+  <div class="chart-card">
+    <button class="dl-btn" onclick="downloadChart('source')" title="Download source data"><i class="ti ti-download"></i>CSV</button>
+    <div class="chart-title"><i class="ti ti-chart-donut"></i> Source-wise Grievance Analysis</div>
+    <div class="chart-subtitle">Where grievances are being registered from</div>
+    <div style="display:flex;align-items:center;gap:16px">
+      <div class="chart-container" style="height:220px;width:220px;flex-shrink:0"><canvas id="chartSource"></canvas></div>
+      <div id="sourceLegend" style="display:flex;flex-direction:column;gap:6px;font-size:11px"></div>
+    </div>
+  </div>
+</div>
+
+<!-- V. GRIEVANCE TYPE DONUT (kept as donut per Change V) -->
+<div class="charts-row">
+  <div class="chart-card">
+    <button class="dl-btn" onclick="downloadChart('type')" title="Download type data"><i class="ti ti-download"></i>CSV</button>
+    <div class="chart-title"><i class="ti ti-chart-donut"></i> Grievance Type Distribution</div>
+    <div class="chart-subtitle">Breakdown by grievance type (Donut chart)</div>
+    <div style="display:flex;align-items:center;gap:16px">
+      <div class="chart-container" style="height:220px;width:220px;flex-shrink:0"><canvas id="chartType"></canvas></div>
+      <div id="typeLegend" style="display:flex;flex-direction:column;gap:6px;font-size:11px"></div>
+    </div>
+  </div>
+  <div class="chart-card">
+    <button class="dl-btn" onclick="downloadChart('circles')" title="Download circles data"><i class="ti ti-download"></i>CSV</button>
+    <div class="chart-title"><i class="ti ti-chart-bar"></i> Top 10 Circles by Grievances</div>
+    <div class="chart-subtitle">Selected period (blue) vs previous month (yellow) — LM shown in label</div>
+    <div class="chart-container" id="chartCircleWrap" style="height:260px"><canvas id="chartCircle"></canvas></div>
+  </div>
+</div>
+
+<!-- VIII. HEATMAP: Circle × Grievance Type -->
+<div class="section-header"><span class="section-label">Heatmap — Circle × Grievance Type</span><div class="section-line"></div></div>
+<div class="chart-card">
+  <button class="dl-btn" onclick="downloadChart('heatmap')" title="Download heatmap data"><i class="ti ti-download"></i>CSV</button>
+  <div class="chart-title"><i class="ti ti-layout-grid"></i> Circle × Grievance Type Matrix</div>
+  <div class="chart-subtitle">Cell intensity reflects complaint volume — darker = higher</div>
+  <div class="heatmap-wrap">
+    <table class="heatmap-table" id="heatmapTable">
+      <thead id="heatmapHead"></thead>
+      <tbody id="heatmapBody"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- VII. DEEP ANALYSIS — Top Sections FIRST, no Top Circles, no Summary Stats -->
+<div class="section-header"><span class="section-label">Deep Analysis</span><div class="section-line"></div></div>
+<div class="analysis-grid">
+  <div class="analysis-card">
+    <button class="dl-btn" onclick="downloadAnalysis('SECTION')" title="Download sections"><i class="ti ti-download"></i>CSV</button>
+    <div class="analysis-card-title"><i class="ti ti-topology-star" style="font-size:11px;margin-right:4px"></i>Top Sections</div>
+    <div class="rank-list" id="rankSection"></div>
+  </div>
+  <div class="analysis-card">
+    <button class="dl-btn" onclick="downloadAnalysis('SUBSTATION')" title="Download substations"><i class="ti ti-download"></i>CSV</button>
+    <div class="analysis-card-title"><i class="ti ti-transformer-bolt" style="font-size:11px;margin-right:4px"></i>Top Substations</div>
+    <div class="rank-list" id="rankSubstation"></div>
+  </div>
+  <div class="analysis-card">
+    <button class="dl-btn" onclick="downloadAnalysis('FEEDER')" title="Download feeders"><i class="ti ti-download"></i>CSV</button>
+    <div class="analysis-card-title"><i class="ti ti-bolt" style="font-size:11px;margin-right:4px"></i>Top Feeders</div>
+    <div class="rank-list" id="rankFeeder"></div>
+  </div>
+  <div class="analysis-card">
+    <button class="dl-btn" onclick="downloadAnalysis('STRUCTURE')" title="Download structures"><i class="ti ti-download"></i>CSV</button>
+    <div class="analysis-card-title"><i class="ti ti-building-factory" style="font-size:11px;margin-right:4px"></i>Top Structures</div>
+    <div class="rank-list" id="rankStructure"></div>
+  </div>
+  <div class="analysis-card">
+    <button class="dl-btn" onclick="downloadAnalysis('REASON')" title="Download reasons"><i class="ti ti-download"></i>CSV</button>
+    <div class="analysis-card-title"><i class="ti ti-alert-circle" style="font-size:11px;margin-right:4px"></i>Top Reasons</div>
+    <div class="rank-list" id="rankReason"></div>
+  </div>
+</div>
+<div style="font-size:10px;color:var(--text3);margin-top:6px;padding:6px 10px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-sm);line-height:1.8">
+  <i class="ti ti-info-circle" style="font-size:11px;margin-right:4px;color:var(--accent)"></i>
+  Format (period ≤ 2 months): &nbsp;<span style="color:var(--text2);font-family:monospace">SECTION : ABIDS (Selected Period: <span style="color:var(--green)">250</span> | Last Month: <span style="color:var(--yellow)">102</span>)</span>
+  &nbsp;&nbsp;|&nbsp;&nbsp;
+  Format (period &gt; 2 months): &nbsp;<span style="color:var(--text2);font-family:monospace">SECTION : ABIDS (<span style="color:var(--green)">250</span>)</span>
+  &nbsp;&nbsp;|&nbsp;&nbsp;
+  Circle name displayed when <strong style="color:var(--accent)">All CIRCLEs</strong> selected
+</div>
+
+<!-- VIII. AI INSIGHTS PANEL -->
+<div class="section-header"><span class="section-label">AI Insights Panel</span><div class="section-line"></div></div>
+<div class="ai-panel">
+  <div class="ai-panel-header">
+    <i class="ti ti-brain" style="font-size:18px;color:var(--accent4)"></i>
+    <div>
+      <div class="ai-panel-title">AI Insights Panel</div>
+      <div class="ai-panel-sub" id="aiPanelSub">Auto-generated from filtered data</div>
+    </div>
+  </div>
+  <div class="ai-insights-grid" id="aiInsightsGrid">
+    <div class="ai-insight" style="--insight-color:var(--text3)">Upload data to generate insights.</div>
+  </div>
+</div>
+
+<!-- VIII. SORTED RANKINGS PANEL -->
+<div class="section-header"><span class="section-label">Sorted Rankings — All Categories</span><div class="section-line"></div></div>
+<div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:16px">
+  <div style="font-size:11px;color:var(--text2);margin-bottom:12px;line-height:1.8">
+    All items sorted in <strong style="color:var(--accent)">descending order</strong> of grievances received. &nbsp;
+    Format: &nbsp;
+    <span style="color:var(--green);font-family:monospace">SECTION : ABIDS (102) &nbsp; FEEDER : ABIDS-11KV (78) &nbsp; STRUCTURE : DTR-12345 (42)</span>
+    <br><span style="font-size:10px;color:var(--text3)">When <strong>All Circles</strong> selected, Circle name is shown alongside each item.</span>
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px">
+    <div>
+      <div style="font-size:10px;font-weight:700;color:var(--yellow);letter-spacing:.8px;text-transform:uppercase;margin-bottom:8px"><i class="ti ti-topology-star" style="margin-right:4px"></i>All Sections</div>
+      <div id="sortedSections" style="display:flex;flex-direction:column;gap:2px;max-height:220px;overflow-y:auto"></div>
+    </div>
+    <div>
+      <div style="font-size:10px;font-weight:700;color:var(--blue);letter-spacing:.8px;text-transform:uppercase;margin-bottom:8px"><i class="ti ti-transformer-bolt" style="margin-right:4px"></i>All Substations</div>
+      <div id="sortedSubstations" style="display:flex;flex-direction:column;gap:2px;max-height:220px;overflow-y:auto"></div>
+    </div>
+    <div>
+      <div style="font-size:10px;font-weight:700;color:var(--purple);letter-spacing:.8px;text-transform:uppercase;margin-bottom:8px"><i class="ti ti-bolt" style="margin-right:4px"></i>All Feeders</div>
+      <div id="sortedFeeders" style="display:flex;flex-direction:column;gap:2px;max-height:220px;overflow-y:auto"></div>
+    </div>
+    <div>
+      <div style="font-size:10px;font-weight:700;color:var(--green);letter-spacing:.8px;text-transform:uppercase;margin-bottom:8px"><i class="ti ti-building-factory" style="margin-right:4px"></i>All Structures</div>
+      <div id="sortedStructures" style="display:flex;flex-direction:column;gap:2px;max-height:220px;overflow-y:auto"></div>
+    </div>
+  </div>
+</div>
+
+<!-- DATA TABLE -->
+<div class="section-header"><span class="section-label">Data Records</span><div class="section-line"></div></div>
+<div class="table-card">
+  <div class="table-header">
+    <span class="table-title">Grievance Records</span>
+    <input class="table-search" type="text" placeholder="Search records..." id="tableSearch" oninput="filterTable()"/>
+  </div>
+  <div style="overflow-x:auto">
+    <table class="data-table" id="dataTable">
+      <thead>
+        <tr>
+          <th onclick="sortTable('SL. NO.')">SL.NO</th>
+          <th onclick="sortTable('GRIEVANCE ID')">Grievance ID</th>
+          <th onclick="sortTable('CIRCLE')">Circle</th>
+          <th onclick="sortTable('SUBSTATION')">Substation</th>
+          <th onclick="sortTable('SECTION')">Section</th>
+          <th onclick="sortTable('FEEDER')">Feeder</th>
+          <th onclick="sortTable('STRUCTURE')">Structure</th>
+          <th onclick="sortTable('GRIEVANCE TYPE')">Type</th>
+          <th onclick="sortTable('REASON')">Reason</th>
+          <th onclick="sortTable('REGISTERED ON')">Registered On</th>
+          <th onclick="sortTable('SOURCE')">Source</th>
+        </tr>
+      </thead>
+      <tbody id="tableBody">
+        <tr><td colspan="11" style="text-align:center;padding:40px;color:var(--text3)"><i class="ti ti-table-off" style="font-size:28px;display:block;margin-bottom:8px"></i>Upload an Excel file to view records</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px">
+    <span class="page-info" id="pageInfo">0 records</span>
+    <div class="pagination" id="pagination"></div>
+  </div>
+</div>
+
+</div><!-- end .main -->
+
+<script>
+// ===================== STATE =====================
+let rawData = [];
+let filteredData = [];
+let tableSearchQuery = '';
+let sortCol = '', sortDir = 1;
+let currentPage = 1;
+const PAGE_SIZE = 25;
+let charts = {};
+let trendMode = 'daily';
+const COLORS = ['#4f8ef7','#7c5cfc','#22d3a5','#f7a14f','#f75f5f','#f7c34f','#5cf7d0','#c45cf7','#f75fc4','#7cf75c'];
+
+// ===================== FILE HANDLING =====================
+function showToast(msg, color) {
+  let t = document.getElementById('toast');
+  if (!t) {
+    t = document.createElement('div');
+    t.id = 'toast';
+    t.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--bg2);border:1px solid var(--border2);color:var(--text);padding:10px 22px;border-radius:8px;font-size:12px;z-index:999;box-shadow:0 4px 20px rgba(0,0,0,.4);transition:opacity .3s';
+    document.body.appendChild(t);
+  }
+  t.textContent = msg;
+  t.style.borderColor = color || 'var(--border2)';
+  t.style.opacity = '1';
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => t.style.opacity = '0', 3000);
+}
+
+// Values treated as blank — never shown in charts
+const BLANK_SENTINELS = new Set(['-', '--', 'n/a', 'na', 'nil', 'none', 'null', 'undefined', '']);
+
+function cleanStr(v) {
+  if (v === null || v === undefined) return '';
+  const s = String(v).trim();
+  return BLANK_SENTINELS.has(s.toLowerCase()) ? '' : s;
+}
+
+function normalizeRow(row) {
+  // Called after sheet_to_json with raw:false — all values already strings
+  // Just uppercase the keys and strip blank sentinels from values
+  const norm = {};
+  const keys = Object.keys(row);
+  for (let i = 0; i < keys.length; i++) {
+    const normKey = keys[i].trim().toUpperCase().replace(/\s+/g, ' ');
+    norm[normKey] = cleanStr(row[keys[i]]);
+  }
+  return norm;
+}
+
+function processInChunks(arr, chunkSize, processFn, doneFn) {
+  let idx = 0;
+  function next() {
+    const end = Math.min(idx + chunkSize, arr.length);
+    for (let i = idx; i < end; i++) processFn(arr[i], i);
+    idx = end;
+    if (idx < arr.length) {
+      showToast('Processing... ' + Math.round(idx / arr.length * 100) + '%', 'var(--accent)');
+      setTimeout(next, 0);
+    } else {
+      doneFn();
+    }
+  }
+  next();
+}
+
+function handleFile(input) {
+  const file = input.files[0];
+  if (!file) return;
+  document.getElementById('uploadOverlay').classList.remove('show');
+  showToast('Reading file...', 'var(--accent)');
+
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const data = new Uint8Array(e.target.result);
+      // raw:false  → numbers (SOURCE=1912) become strings, dates become formatted strings
+      // cellDates  → dates parsed as actual dates before formatting
+      const wb = XLSX.read(data, { type: 'array', cellDates: true });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const json = XLSX.utils.sheet_to_json(ws, { defval: '', raw: false });
+
+      showToast('Normalizing ' + json.length.toLocaleString() + ' records...', 'var(--accent)');
+      const normalized = new Array(json.length);
+
+      processInChunks(json, 10000,
+        (row, i) => { normalized[i] = normalizeRow(row); },
+        () => {
+          rawData = normalized;
+          document.getElementById('recordBadge').textContent = rawData.length.toLocaleString() + ' Records';
+          document.getElementById('lastUpdated').textContent = 'Updated: ' + new Date().toLocaleString();
+          showToast('✓ Loaded ' + rawData.length.toLocaleString() + ' records', 'var(--green)');
+          const p = document.getElementById('uploadPrompt');
+          if (p) p.style.display = 'none';
+          populateSlicers();
+          applyFilters();
+        }
+      );
+    } catch (err) {
+      alert('Error reading file: ' + err.message + '\n' + err.stack);
+    }
+  };
+  reader.onerror = () => alert('Failed to read file. Please try again.');
+  reader.readAsArrayBuffer(file);
+}
+const fileDrop = document.getElementById('fileDrop');
+fileDrop.addEventListener('dragover', e => { e.preventDefault(); fileDrop.classList.add('dragover'); });
+fileDrop.addEventListener('dragleave', () => fileDrop.classList.remove('dragover'));
+fileDrop.addEventListener('drop', e => {
+  e.preventDefault(); fileDrop.classList.remove('dragover');
+  const dt = new DataTransfer(); dt.items.add(e.dataTransfer.files[0]);
+  document.getElementById('fileInput').files = dt.files;
+  handleFile(document.getElementById('fileInput'));
+});
+
+// ===================== HELPERS =====================
+function getCol(row, ...keys) {
+  // After normalizeRow, all values are clean strings — just return non-empty ones
+  for (const k of keys) {
+    const v = row[k];
+    if (v && v !== '') return v;
+  }
+  return '';
+}
+function parseDate(v) {
+  if (!v || v === '') return null;
+  // raw:false gives dates as locale strings e.g. "6/1/25" — new Date() parses correctly
+  const d = new Date(v);
+  return isNaN(d) ? null : d;
+}
+function countUnique(data, field) {
+  return new Set(data.map(r => getCol(r, field)).filter(Boolean)).size;
+}
+function freq(data, field) {
+  const m = {};
+  data.forEach(r => {
+    const v = getCol(r, field);
+    if (!v) return;            // skip blank rows — never lump into 'Unknown'
+    m[v] = (m[v] || 0) + 1;
+  });
+  return Object.entries(m).sort((a, b) => b[1] - a[1]);
+}
+function freqWithCircle(data, field) {
+  const map = {};
+  data.forEach(r => {
+    const v = getCol(r, field);
+    if (!v) return;            // skip blank rows
+    const c = getCol(r, 'CIRCLE') || '';
+    if (!map[v]) map[v] = { count: 0, circle: c };
+    map[v].count++;
+  });
+  return Object.entries(map)
+    .map(([name, d]) => ({ name, circle: d.circle, count: d.count }))
+    .sort((a, b) => b.count - a.count);
+}
+function getSlicerVal(id) { return document.getElementById(id).value; }
+
+// ===================== SLICERS =====================
+function refreshSlicerCounts() {
+  // Re-populate Section/Substation/Feeder/Structure slicers with counts
+  // from filteredData so counts reflect current circle/date selection
+  const countSlicers = {
+    'sl-section':    { fn: r => getCol(r,'SECTION'),    prefix: 'SECTION' },
+    'sl-substation': { fn: r => getCol(r,'SUBSTATION'), prefix: 'SUBSTATION' },
+    'sl-feeder':     { fn: r => getCol(r,'FEEDER'),     prefix: 'FEEDER' },
+    'sl-structure':  { fn: r => getCol(r,'STRUCTURE'),  prefix: 'STRUCTURE' },
+  };
+  Object.entries(countSlicers).forEach(([id, cfg]) => {
+    const sel = document.getElementById(id);
+    const currentVal = sel.value; // preserve current selection
+    const first = sel.options[0];
+    sel.innerHTML = '';
+    sel.appendChild(first);
+    const m = {};
+    filteredData.forEach(r => {
+      const v = cfg.fn(r);
+      if (v) m[v] = (m[v] || 0) + 1;
+    });
+    Object.entries(m)
+      .sort((a, b) => b[1] - a[1])
+      .forEach(([v, cnt]) => {
+        const opt = new Option(`${cfg.prefix} : ${v} (${cnt.toLocaleString()})`, v);
+        sel.appendChild(opt);
+      });
+    // Restore selection if still valid
+    if (currentVal) sel.value = currentVal;
+  });
+
+  // Also refresh Type, Reason, Source, Circle with counts from filteredData
+  const simpleRefresh = {
+    'sl-circle': r => getCol(r,'CIRCLE'),
+    'sl-type':   r => getCol(r,'GRIEVANCE TYPE'),
+    'sl-reason': r => getCol(r,'REASON'),
+    'sl-source': r => getCol(r,'SOURCE'),
+  };
+  Object.entries(simpleRefresh).forEach(([id, fn]) => {
+    const sel = document.getElementById(id);
+    const currentVal = sel.value;
+    const first = sel.options[0];
+    sel.innerHTML = '';
+    sel.appendChild(first);
+    const m = {};
+    filteredData.forEach(r => {
+      const v = fn(r);
+      if (v) m[v] = (m[v] || 0) + 1;
+    });
+    Object.entries(m)
+      .sort((a, b) => b[1] - a[1])
+      .forEach(([v, cnt]) => {
+        const opt = new Option(`${v} (${cnt.toLocaleString()})`, v);
+        sel.appendChild(opt);
+      });
+    if (currentVal) sel.value = currentVal;
+  });
+}
+
+function populateSlicers() {
+  // For Section, Substation, Feeder, Structure — sort by grievance count DESC, show count in brackets
+  // For Circle, Type, Reason, Source — sort by count DESC, no brackets (cleaner)
+  // Always use rawData for full population
+
+  function buildFreqMap(fn) {
+    const m = {};
+    rawData.forEach(r => {
+      const v = fn(r);
+      if (v) m[v] = (m[v] || 0) + 1;
+    });
+    return m;
+  }
+
+  // Slicers that show counts in brackets (key requirement)
+  const countSlicers = {
+    'sl-section':    { fn: r => getCol(r,'SECTION'),    label: v => `SECTION : ${v}` },
+    'sl-substation': { fn: r => getCol(r,'SUBSTATION'), label: v => `SUBSTATION : ${v}` },
+    'sl-feeder':     { fn: r => getCol(r,'FEEDER'),     label: v => `FEEDER : ${v}` },
+    'sl-structure':  { fn: r => getCol(r,'STRUCTURE'),  label: v => `STRUCTURE : ${v}` },
+  };
+
+  // Slicers sorted by count but without the prefix/brackets
+  const simpleSlicers = {
+    'sl-circle': r => getCol(r,'CIRCLE'),
+    'sl-type':   r => getCol(r,'GRIEVANCE TYPE'),
+    'sl-reason': r => getCol(r,'REASON'),
+    'sl-source': r => getCol(r,'SOURCE'),
+  };
+
+  // Populate count-bearing slicers: SECTION : ABIDS (102) sorted descending
+  Object.entries(countSlicers).forEach(([id, cfg]) => {
+    const sel = document.getElementById(id);
+    const first = sel.options[0]; // keep "All ..."
+    sel.innerHTML = '';
+    sel.appendChild(first);
+    const m = buildFreqMap(cfg.fn);
+    Object.entries(m)
+      .sort((a, b) => b[1] - a[1]) // descending by count
+      .forEach(([v, cnt]) => {
+        const displayText = `${cfg.label(v)} (${cnt.toLocaleString()})`;
+        const opt = new Option(displayText, v); // display label with count, value is raw name
+        sel.appendChild(opt);
+      });
+  });
+
+  // Populate simple slicers: sorted by count descending, WITH count in brackets
+  const simpleLabels = {
+    'sl-circle': v => v,
+    'sl-type':   v => v,
+    'sl-reason': v => v,
+    'sl-source': v => v,
+  };
+  Object.entries(simpleSlicers).forEach(([id, fn]) => {
+    const sel = document.getElementById(id);
+    const first = sel.options[0];
+    sel.innerHTML = '';
+    sel.appendChild(first);
+    const m = buildFreqMap(fn);
+    Object.entries(m)
+      .sort((a, b) => b[1] - a[1])
+      .forEach(([v, cnt]) => {
+        const opt = new Option(`${v} (${cnt.toLocaleString()})`, v);
+        sel.appendChild(opt);
+      });
+  });
+}
+function clearAllFilters() {
+  ['sl-circle','sl-substation','sl-section','sl-feeder','sl-structure','sl-type','sl-reason','sl-source'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('dateFrom').value = '';
+  document.getElementById('dateTo').value = '';
+  document.querySelectorAll('.timeline-btn').forEach(b => b.classList.remove('active'));
+  document.querySelector('.timeline-btn').classList.add('active');
+  applyFilters();
+}
+
+// ===================== TIMELINE =====================
+function setTimeline(period, btn) {
+  document.querySelectorAll('.timeline-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  const now = new Date();
+  let from = null;
+  if (period === '7d') from = new Date(now - 7*864e5);
+  else if (period === '30d') from = new Date(now - 30*864e5);
+  else if (period === '90d') from = new Date(now - 90*864e5);
+  else if (period === '6m') from = new Date(now.getFullYear(), now.getMonth()-6, now.getDate());
+  else if (period === '1y') from = new Date(now.getFullYear()-1, now.getMonth(), now.getDate());
+  if (from) {
+    document.getElementById('dateFrom').value = from.toISOString().split('T')[0];
+    document.getElementById('dateTo').value = now.toISOString().split('T')[0];
+  } else {
+    document.getElementById('dateFrom').value = '';
+    document.getElementById('dateTo').value = '';
+  }
+  applyFilters();
+}
+function setTrend(mode, btn) {
+  document.querySelectorAll('.trend-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  trendMode = mode;
+  renderTrendChart();
+}
+
+// ===================== FILTER =====================
+function applyFilters() {
+  const circle = getSlicerVal('sl-circle');
+  const substation = getSlicerVal('sl-substation');
+  const section = getSlicerVal('sl-section');
+  const feeder = getSlicerVal('sl-feeder');
+  const structure = getSlicerVal('sl-structure');
+  const type = getSlicerVal('sl-type');
+  const reason = getSlicerVal('sl-reason');
+  const source = getSlicerVal('sl-source');
+  const dateFrom = document.getElementById('dateFrom').value ? new Date(document.getElementById('dateFrom').value) : null;
+  const dateTo = document.getElementById('dateTo').value ? new Date(document.getElementById('dateTo').value + 'T23:59:59') : null;
+
+  filteredData = rawData.filter(r => {
+    if (circle && getCol(r,'CIRCLE') !== circle) return false;
+    if (substation && getCol(r,'SUBSTATION') !== substation) return false;
+    if (section && getCol(r,'SECTION') !== section) return false;
+    if (feeder && getCol(r,'FEEDER') !== feeder) return false;
+    if (structure && getCol(r,'STRUCTURE') !== structure) return false;
+    if (type && getCol(r,'GRIEVANCE TYPE') !== type) return false;
+    if (reason && getCol(r,'REASON') !== reason) return false;
+    if (source && getCol(r,'SOURCE') !== source) return false;
+    if (dateFrom || dateTo) {
+      const d = parseDate(r['REGISTERED ON']);
+      if (!d) return false;
+      if (dateFrom && d < dateFrom) return false;
+      if (dateTo && d > dateTo) return false;
+    }
+    return true;
+  });
+
+  updateSmartKPIs();
+  refreshSlicerCounts();
+  renderCharts();
+  renderAnalysis();
+  renderHeatmap();
+  renderAIInsights();
+  renderSortedRankings();
+  renderTable();
+}
+
+// ===================== SMART KPIs =====================
+function updateSmartKPIs() {
+  const n = filteredData.length;
+  const topCircle = freq(filteredData,'CIRCLE')[0];
+  const topFeeder = freq(filteredData,'FEEDER')[0];
+  const topStruct = freq(filteredData,'STRUCTURE')[0];
+  const topSub = freq(filteredData,'SUBSTATION')[0];
+  const totalCircles = countUnique(filteredData,'CIRCLE');
+
+  document.getElementById('skpiCircleName').textContent = topCircle ? topCircle[0] : '—';
+  document.getElementById('skpiCircleCount').textContent = topCircle ? topCircle[1].toLocaleString() : '0';
+  document.getElementById('skpiCircleSub').textContent = 'grievances';
+  document.getElementById('skpiCircleTotal').textContent = totalCircles + ' Circles Total';
+
+  document.getElementById('skpiFeederName').textContent = topFeeder ? topFeeder[0] : '—';
+  document.getElementById('skpiFeederCount').textContent = topFeeder ? topFeeder[1].toLocaleString() : '0';
+  const feederPct = (n && topFeeder) ? ((topFeeder[1]/n)*100).toFixed(1) : '0';
+  document.getElementById('skpiFeederPct').textContent = feederPct + '% of total';
+
+  document.getElementById('skpiStructName').textContent = topStruct ? topStruct[0] : '—';
+  document.getElementById('skpiStructCount').textContent = topStruct ? topStruct[1].toLocaleString() : '0';
+
+  document.getElementById('skpiSubName').textContent = topSub ? topSub[0] : '—';
+  document.getElementById('skpiSubCount').textContent = topSub ? topSub[1].toLocaleString() : '0';
+
+  // Date range for total KPI
+  const dates = filteredData.map(r => parseDate(r['REGISTERED ON'])).filter(Boolean);
+  let dateRangeStr = '—', minD = null, maxD = null;
+  if (dates.length) {
+    // Use reduce — spread (...dates) overflows call stack on 100k+ arrays
+    let minMs = Infinity, maxMs = -Infinity;
+    dates.forEach(d => { const ms = d.getTime(); if(ms < minMs) minMs = ms; if(ms > maxMs) maxMs = ms; });
+    minD = new Date(minMs);
+    maxD = new Date(maxMs);
+    dateRangeStr = minD.toISOString().split('T')[0] + ' — ' + maxD.toISOString().split('T')[0];
+  }
+  document.getElementById('skpiTotalCount').textContent = n.toLocaleString();
+}
+
+// ===================== CHARTS =====================
+function mkChart(id, cfg) {
+  if (charts[id]) charts[id].destroy();
+  charts[id] = new Chart(document.getElementById(id), cfg);
+}
+
+const chartDefaults = {
+  plugins: { legend: { display: false } },
+  scales: {
+    x: { grid: { color:'rgba(255,255,255,0.04)' }, ticks: { color:'#9aa3bf', font:{size:10}, maxRotation:45 } },
+    y: { grid: { color:'rgba(255,255,255,0.04)' }, ticks: { color:'#9aa3bf', font:{size:10} } }
+  }
+};
+
+// V. TREND CHART
+function renderTrendChart() {
+  const grouped = {};
+  filteredData.forEach(r => {
+    const d = parseDate(r['REGISTERED ON']);
+    if (!d) return;
+    let key;
+    if (trendMode === 'hourly') {
+      key = d.toISOString().slice(0,13).replace('T',' ') + 'h';
+    } else if (trendMode === 'daily') {
+      key = d.toISOString().slice(0,10);
+    } else {
+      const wStart = new Date(d); wStart.setDate(d.getDate() - d.getDay());
+      key = 'W ' + wStart.toISOString().slice(5,10);
+    }
+    grouped[key] = (grouped[key]||0)+1;
+  });
+  const labels = Object.keys(grouped).sort();
+  const data = labels.map(k => grouped[k]);
+  mkChart('chartTrend', {
+    type:'line',
+    data:{
+      labels,
+      datasets:[{
+        label:'Grievances', data,
+        borderColor:'#4f8ef7', backgroundColor:'rgba(79,142,247,0.1)',
+        fill:true, tension:0.4, pointRadius:2, pointBackgroundColor:'#4f8ef7'
+      }]
+    },
+    options:{ responsive:true, maintainAspectRatio:false, ...chartDefaults }
+  });
+}
+
+// VI. PEAK HOUR
+function renderPeakHourChart() {
+  // No time data in dataset — show Day-of-Week pattern instead
+  const DAYS = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  const dayCounts = Array(7).fill(0);
+  filteredData.forEach(r => {
+    const d = parseDate(r['REGISTERED ON']);
+    if (d) dayCounts[d.getDay()]++;
+  });
+  const maxDay = dayCounts.indexOf(Math.max(...dayCounts));
+  const bgColors = dayCounts.map((_,i) => i===maxDay ? '#f75f5f' : '#4f8ef7');
+  mkChart('chartPeakHour', {
+    type:'bar',
+    data:{
+      labels: DAYS,
+      datasets:[{label:'Grievances', data:dayCounts, backgroundColor:bgColors, borderRadius:4}]
+    },
+    options:{ responsive:true, maintainAspectRatio:false, ...chartDefaults }
+  });
+}
+
+// VI. ROOT CAUSE
+function renderRootCause() {
+  const container = document.getElementById('rcBars');
+
+  // Reasons sorted descending by count in selected period
+  const rc = freq(filteredData, 'REASON').slice(0, 12);
+  if (!rc.length) { container.innerHTML = '<div style="color:var(--text3);font-size:11px">No data</div>'; return; }
+
+  // Compute previous month data
+  const { from, to } = getDateRange();
+  const refDate = from ? new Date(from) : new Date();
+  const prevEnd   = new Date(refDate.getFullYear(), refDate.getMonth(), 0, 23, 59, 59);
+  const prevStart = new Date(prevEnd.getFullYear(), prevEnd.getMonth(), 1);
+  const prevMap = {};
+  const _rcCircle = getSlicerVal('sl-circle');
+  const _rcFeeder = getSlicerVal('sl-feeder');
+  const _rcSection = getSlicerVal('sl-section');
+  const _rcSubst = getSlicerVal('sl-substation');
+  const _rcStruct = getSlicerVal('sl-structure');
+  const _rcType = getSlicerVal('sl-type');
+  const _rcSource = getSlicerVal('sl-source');
+  rawData.forEach(r => {
+    const d = parseDate(r['REGISTERED ON']);
+    if (!d || d < prevStart || d > prevEnd) return;
+    if (_rcCircle  && getCol(r,'CIRCLE')                !== _rcCircle)  return;
+    if (_rcFeeder  && getCol(r,'FEEDER')                !== _rcFeeder)  return;
+    if (_rcSection && getCol(r,'SECTION')               !== _rcSection) return;
+    if (_rcSubst   && getCol(r,'SUBSTATION')            !== _rcSubst)   return;
+    if (_rcStruct  && getCol(r,'STRUCTURE')             !== _rcStruct)  return;
+    if (_rcType    && getCol(r,'GRIEVANCE TYPE') !== _rcType)    return;
+    if (_rcSource  && getCol(r,'SOURCE')                !== _rcSource)  return;
+    const reason = getCol(r, 'REASON');
+    if (reason) prevMap[reason] = (prevMap[reason] || 0) + 1;
+  });
+
+  const max = rc[0][1];
+  container.innerHTML = rc.map(([label, cnt]) => {
+    const prevCnt = prevMap[label] || 0;
+    const prevStr = prevCnt > 0
+      ? `<span style="color:var(--yellow);font-size:10px;margin-left:4px">(LM: ${prevCnt.toLocaleString()})</span>`
+      : `<span style="color:var(--text3);font-size:10px;margin-left:4px">(LM: 0)</span>`;
+    return `<div class="rc-bar-row">
+      <div class="rc-label" title="${label}">${label}</div>
+      <div class="rc-bar-wrap"><div class="rc-bar" style="width:${Math.round(cnt/max*100)}%"></div></div>
+      <div class="rc-count" style="display:flex;align-items:center;gap:0">${cnt.toLocaleString()}${prevStr}</div>
+    </div>`;
+  }).join('');
+}
+
+// SOURCE
+function renderSourceChart() {
+  const src = freq(filteredData,'SOURCE').slice(0,10);
+  const total = src.reduce((s,e)=>s+e[1],0);
+  // Build legend
+  const legend = document.getElementById('sourceLegend');
+  if (legend) {
+    legend.innerHTML = src.map(([label,count],i) => {
+      const pct = total ? Math.round(count/total*100) : 0;
+      return `<div style="display:flex;align-items:center;gap:5px">
+        <span style="width:10px;height:10px;border-radius:2px;background:${COLORS[i%COLORS.length]};flex-shrink:0"></span>
+        <span style="color:var(--text2);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${label}</span>
+        <span style="color:var(--text);font-weight:600">${pct}%</span>
+      </div>`;
+    }).join('');
+  }
+  mkChart('chartSource', {
+    type:'doughnut',
+    data:{
+      labels:src.map(e=>e[0]),
+      datasets:[{data:src.map(e=>e[1]), backgroundColor:COLORS.slice(0,src.length), borderWidth:0, hoverOffset:6}]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false, cutout:'65%',
+      plugins:{
+        legend:{display:false},
+        tooltip:{callbacks:{label: ctx => ` ${ctx.label}: ${ctx.raw.toLocaleString()} (${total?Math.round(ctx.raw/total*100):0}%)`}}
+      }
+    }
+  });
+}
+
+
+// V. TYPE DONUT
+function renderTypeDonut() {
+  const tf = freq(filteredData, 'GRIEVANCE TYPE').slice(0,8);
+  const legend = document.getElementById('typeLegend');
+  legend.innerHTML = tf.map(([label,count],i) => {
+    const pct = filteredData.length ? Math.round(count/filteredData.length*100) : 0;
+    return `<div style="display:flex;align-items:center;gap:5px">
+      <span style="width:10px;height:10px;border-radius:2px;background:${COLORS[i%COLORS.length]};flex-shrink:0"></span>
+      <span style="color:var(--text2);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${label}</span>
+      <span style="color:var(--text);font-weight:600">${pct}%</span>
+    </div>`;
+  }).join('');
+  mkChart('chartType', {
+    type:'doughnut',
+    data:{
+      labels:tf.map(e=>e[0]),
+      datasets:[{data:tf.map(e=>e[1]), backgroundColor:COLORS.slice(0,tf.length), borderWidth:0, hoverOffset:6}]
+    },
+    options:{responsive:true, maintainAspectRatio:false, cutout:'65%', plugins:{legend:{display:false}}}
+  });
+}
+
+// CIRCLE BAR
+function renderCircleBar() {
+  const cf = freq(filteredData,'CIRCLE').slice(0,10);
+  const wrap = document.getElementById('chartCircleWrap');
+  wrap.style.height = Math.max(220, cf.length*42+60)+'px';
+
+  // Compute previous month counts per circle
+  const { from } = getDateRange();
+  const refDate = from ? new Date(from) : new Date();
+  const prevEnd   = new Date(refDate.getFullYear(), refDate.getMonth(), 0, 23, 59, 59);
+  const prevStart = new Date(prevEnd.getFullYear(), prevEnd.getMonth(), 1);
+  const prevMap = {};
+  const _cbSection = getSlicerVal('sl-section');
+  const _cbSubst   = getSlicerVal('sl-substation');
+  const _cbFeeder  = getSlicerVal('sl-feeder');
+  const _cbStruct  = getSlicerVal('sl-structure');
+  const _cbType    = getSlicerVal('sl-type');
+  const _cbReason  = getSlicerVal('sl-reason');
+  const _cbSource  = getSlicerVal('sl-source');
+  rawData.forEach(r => {
+    const d = parseDate(r['REGISTERED ON']);
+    if (!d || d < prevStart || d > prevEnd) return;
+    if (_cbSection && getCol(r,'SECTION')               !== _cbSection) return;
+    if (_cbSubst   && getCol(r,'SUBSTATION')            !== _cbSubst)   return;
+    if (_cbFeeder  && getCol(r,'FEEDER')                !== _cbFeeder)  return;
+    if (_cbStruct  && getCol(r,'STRUCTURE')             !== _cbStruct)  return;
+    if (_cbType    && getCol(r,'GRIEVANCE TYPE') !== _cbType)    return;
+    if (_cbReason  && getCol(r,'REASON')                !== _cbReason)  return;
+    if (_cbSource  && getCol(r,'SOURCE')                !== _cbSource)  return;
+    const c = getCol(r,'CIRCLE');
+    if (c) prevMap[c] = (prevMap[c]||0)+1;
+  });
+
+  // Labels show: CircleName (LM: prevCount)
+  const labels = cf.map(([name]) => {
+    const pm = prevMap[name] || 0;
+    return `${name}  (LM: ${pm.toLocaleString()})`;
+  });
+
+  mkChart('chartCircle', {
+    type:'bar',
+    data:{
+      labels,
+      datasets:[
+        {
+          label:'Selected Period',
+          data: cf.map(e=>e[1]),
+          backgroundColor:'#4f8ef7',
+          borderRadius:4,
+          barPercentage:0.6
+        },
+        {
+          label:'Previous Month',
+          data: cf.map(([name])=> prevMap[name]||0),
+          backgroundColor:'rgba(247,195,79,0.35)',
+          borderColor:'#f7c34f',
+          borderWidth:1,
+          borderRadius:4,
+          barPercentage:0.6
+        }
+      ]
+    },
+    options:{
+      indexAxis:'y', responsive:true, maintainAspectRatio:false,
+      plugins:{
+        legend:{
+          display:true,
+          position:'top',
+          labels:{ color:'#9aa3bf', font:{size:10}, boxWidth:12, padding:14 }
+        },
+        tooltip:{
+          callbacks:{
+            label: ctx => {
+              const name = ctx.dataset.label;
+              return ` ${name}: ${ctx.raw.toLocaleString()}`;
+            }
+          }
+        }
+      },
+      scales:{
+        x:{grid:{color:'rgba(255,255,255,0.04)'}, ticks:{color:'#9aa3bf',font:{size:10}}},
+        y:{grid:{display:false}, ticks:{color:'#9aa3bf',font:{size:10}}}
+      }
+    }
+  });
+}
+
+function renderCharts() {
+  if (!filteredData.length) {
+    ['chartTrend','chartPeakHour','chartSource','chartType','chartCircle'].forEach(id => { if(charts[id]){charts[id].destroy();delete charts[id];} });
+    document.getElementById('rcBars').innerHTML='<div style="color:var(--text3);font-size:11px">No data</div>';
+    return;
+  }
+  renderTrendChart();
+  renderPeakHourChart();
+  renderRootCause();
+  renderSourceChart();
+  renderTypeDonut();
+  renderCircleBar();
+}
+
+// ===================== VIII. HEATMAP =====================
+function renderHeatmap() {
+  const head = document.getElementById('heatmapHead');
+  const body = document.getElementById('heatmapBody');
+  if (!filteredData.length) { head.innerHTML=''; body.innerHTML='<tr><td colspan="2" style="padding:20px;color:var(--text3);text-align:center">No data</td></tr>'; return; }
+
+  const types = [...new Set(filteredData.map(r => getCol(r,'GRIEVANCE TYPE')).filter(Boolean))].slice(0,10);
+  const circles = freq(filteredData,'CIRCLE').slice(0,15).map(e=>e[0]);
+
+  // Build matrix
+  const matrix = {};
+  filteredData.forEach(r => {
+    const c = getCol(r,'CIRCLE');
+    const t = getCol(r,'GRIEVANCE TYPE');
+    if (!c || !t) return;
+    if (!matrix[c]) matrix[c] = {};
+    matrix[c][t] = (matrix[c][t]||0)+1;
+  });
+
+  const allVals = [];
+  circles.forEach(c => types.forEach(t => { if (matrix[c]&&matrix[c][t]) allVals.push(matrix[c][t]); }));
+  const maxVal = allVals.length ? allVals.reduce((a,b)=>a>b?a:b, 0) : 1;
+
+  function heatColor(val) {
+    if (!val) return 'transparent';
+    const intensity = val/maxVal;
+    const r = Math.round(22 + intensity*(79-22));
+    const g = Math.round(38 + intensity*(142-38));
+    const b = Math.round(58 + intensity*(247-58));
+    return `rgba(${r},${g},${b},${0.2+intensity*0.8})`;
+  }
+
+  head.innerHTML = '<tr><th style="text-align:left">Circle / Type</th>' + types.map(t=>`<th title="${t}">${t}</th>`).join('') + '</tr>';
+  body.innerHTML = circles.map(c =>
+    '<tr><td>' + c + '</td>' + types.map(t => {
+      const val = (matrix[c]&&matrix[c][t]) || 0;
+      const bg = heatColor(val);
+      return `<td><span class="heat-cell" style="background:${bg};color:${val?'var(--text)':'var(--text3)'}">${val||''}</span></td>`;
+    }).join('') + '</tr>'
+  ).join('');
+}
+
+// ===================== VII. DEEP ANALYSIS =====================
+function getDateRange() {
+  const from = document.getElementById('dateFrom').value ? new Date(document.getElementById('dateFrom').value) : null;
+  const to = document.getElementById('dateTo').value ? new Date(document.getElementById('dateTo').value+'T23:59:59') : null;
+  return {from, to};
+}
+function getSpanMonths(from, to) {
+  if (!from || !to) return 999;
+  return (to.getFullYear()-from.getFullYear())*12+(to.getMonth()-from.getMonth());
+}
+
+function renderAdvancedRankList(id, field, color, prefix) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  if (!filteredData.length) { el.innerHTML='<div style="color:var(--text3);font-size:11px">No data</div>'; return; }
+
+  const {from, to} = getDateRange();
+  const spanMonths = getSpanMonths(from, to);
+  // Show last month only when period is <= 2 months AND dates are actually selected
+  const showLastMonth = (from || to) && spanMonths <= 2;
+  const allCircles = !getSlicerVal('sl-circle');
+
+  // Build previous month counts — month immediately before the 'from' date
+  // If no 'from', use month before today
+  let prevMap = {};
+  if (showLastMonth) {
+    const refDate = from ? new Date(from) : new Date();
+    const prevEnd   = new Date(refDate.getFullYear(), refDate.getMonth(), 0, 23, 59, 59);
+    const prevStart = new Date(prevEnd.getFullYear(), prevEnd.getMonth(), 1);
+    const _circle    = getSlicerVal('sl-circle');
+    const _section   = getSlicerVal('sl-section');
+    const _subst     = getSlicerVal('sl-substation');
+    const _feeder    = getSlicerVal('sl-feeder');
+    const _structure = getSlicerVal('sl-structure');
+    const _type      = getSlicerVal('sl-type');
+    const _reason    = getSlicerVal('sl-reason');
+    const _source    = getSlicerVal('sl-source');
+    rawData.forEach(r => {
+      const d = parseDate(r['REGISTERED ON']);
+      if (!d || d < prevStart || d > prevEnd) return;
+      if (_circle    && getCol(r,'CIRCLE')       !== _circle)    return;
+      if (_section   && getCol(r,'SECTION')      !== _section)   return;
+      if (_subst     && getCol(r,'SUBSTATION')   !== _subst)     return;
+      if (_feeder    && getCol(r,'FEEDER')        !== _feeder)    return;
+      if (_structure && getCol(r,'STRUCTURE')    !== _structure) return;
+      if (_type      && getCol(r,'GRIEVANCE TYPE') !== _type)    return;
+      if (_reason    && getCol(r,'REASON')        !== _reason)    return;
+      if (_source    && getCol(r,'SOURCE')        !== _source)    return;
+      const v = getCol(r, field);
+      if (v) prevMap[v] = (prevMap[v] || 0) + 1;
+    });
+  }
+
+  // Sort by selected period count descending
+  const items = freqWithCircle(filteredData, field).slice(0, 8);
+  if (!items.length) { el.innerHTML='<div style="color:var(--text3);font-size:11px">No data</div>'; return; }
+  const max = items[0].count;
+
+  el.innerHTML = items.map((item, i) => {
+    const prevCount = prevMap[item.name] || 0;
+
+    // Circle name shown only when All Circles selected
+    const circlePart = allCircles && item.circle ? ` - ${item.circle}` : '';
+
+    // Exact display format per requirement:
+    // Period <= 2 months: PREFIX : NAME - Circle (Selected Period: X | Last Month: Y)
+    // Period > 2 months:  PREFIX : NAME - Circle (X)
+    const nameLine = `${prefix} : ${item.name}${circlePart}`;
+    let countLine;
+    if (showLastMonth) {
+      countLine = `(Selected Period: <span style="color:var(--green);font-weight:700">${item.count.toLocaleString()}</span> | Last Month: <span style="color:var(--yellow);font-weight:700">${prevCount.toLocaleString()}</span>)`;
+    } else {
+      countLine = `(<span style="color:var(--green);font-weight:700">${item.count.toLocaleString()}</span>)`;
+    }
+
+    return `<div style="border-bottom:1px solid var(--border);padding:6px 0">
+      <div style="display:flex;align-items:center;gap:5px;margin-bottom:3px;flex-wrap:wrap">
+        <span style="font-size:10px;font-weight:700;color:var(--text3);min-width:18px">${i+1}</span>
+        <span style="font-size:11px;font-weight:600;color:var(--text);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${nameLine}">${nameLine}</span>
+      </div>
+      <div style="font-size:10px;padding-left:23px;margin-bottom:3px;color:var(--text2)">${countLine}</div>
+      <div style="padding-left:23px"><div class="rank-bar-wrap"><div class="rank-bar" style="width:${Math.round(item.count/max*100)}%;background:${color}"></div></div></div>
+    </div>`;
+  }).join('');
+}
+
+function renderSimpleRankList(id, data, color) {
+  const el = document.getElementById(id);
+  if (!data.length) { el.innerHTML='<div style="color:var(--text3);font-size:11px">No data</div>'; return; }
+  const max = data[0][1];
+  el.innerHTML = data.slice(0,8).map(([name,cnt],i) =>
+    `<div class="rank-item">
+      <span class="rank-num">${i+1}</span>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:10px;color:var(--text2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${name}">${name}</div>
+        <div class="rank-bar-wrap" style="margin-top:3px"><div class="rank-bar" style="width:${Math.round(cnt/max*100)}%;background:${color}"></div></div>
+      </div>
+      <span style="font-size:11px;font-weight:700;color:var(--text)">${cnt.toLocaleString()}</span>
+    </div>`
+  ).join('');
+}
+
+function renderAnalysis() {
+  renderAdvancedRankList('rankSection','SECTION','#f7a14f','SECTION');
+  renderAdvancedRankList('rankSubstation','SUBSTATION','#4f8ef7','SUBSTATION');
+  renderAdvancedRankList('rankFeeder','FEEDER','#7c5cfc','FEEDER');
+  renderAdvancedRankList('rankStructure','STRUCTURE','#22d3a5','STRUCTURE');
+  renderSimpleRankList('rankReason', freq(filteredData,'REASON'), '#f75f5f');
+}
+
+// ===================== VIII. AI INSIGHTS =====================
+function renderAIInsights() {
+  const n = filteredData.length;
+  const sub = document.getElementById('aiPanelSub');
+  const grid = document.getElementById('aiInsightsGrid');
+  if (!n) {
+    sub.textContent = 'Upload data to generate insights';
+    grid.innerHTML = '<div class="ai-insight" style="--insight-color:var(--text3)">Upload data to generate AI insights.</div>';
+    return;
+  }
+
+  const dates = filteredData.map(r=>parseDate(r['REGISTERED ON'])).filter(Boolean);
+  let minD = null, maxD = null;
+  if (dates.length) {
+    let minMs = Infinity, maxMs = -Infinity;
+    dates.forEach(d => { const ms = d.getTime(); if(ms < minMs) minMs = ms; if(ms > maxMs) maxMs = ms; });
+    minD = new Date(minMs);
+    maxD = new Date(maxMs);
+  }
+  sub.textContent = minD && maxD ? `Auto-generated from ${minD.toDateString()} to ${maxD.toDateString()} data` : 'Auto-generated from filtered data';
+
+  const topCircle = freq(filteredData,'CIRCLE')[0];
+  const topFeeder = freq(filteredData,'FEEDER')[0];
+  const topSub = freq(filteredData,'SUBSTATION')[0];
+  const topSource = freq(filteredData,'SOURCE')[0];
+  const topType = freq(filteredData,'GRIEVANCE TYPE')[0];
+  const topReason = freq(filteredData,'REASON')[0];
+  const top3Circles = freq(filteredData,'CIRCLE').slice(0,3);
+  const totalCircles = countUnique(filteredData,'CIRCLE');
+
+  // Peak day of week
+  const DAYS_AI = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  const dayCounts_AI = Array(7).fill(0);
+  filteredData.forEach(r => { const d=parseDate(r['REGISTERED ON']); if(d) dayCounts_AI[d.getDay()]++; });
+  const peakH = dayCounts_AI.indexOf(Math.max(...dayCounts_AI));
+  const peakHCount = dayCounts_AI[peakH];
+
+  const days = (minD&&maxD) ? Math.max(1,Math.round((maxD-minD)/864e5)+1) : 1;
+
+  const top3Pct = top3Circles.length ? ((top3Circles.reduce((s,e)=>s+e[1],0)/n)*100).toFixed(1) : '0';
+  const feederPct = (topFeeder&&n) ? ((topFeeder[1]/n)*100).toFixed(1) : '0';
+  const typePct = (topType&&n) ? ((topType[1]/n)*100).toFixed(1) : '0';
+  const srcPct = (topSource&&n) ? ((topSource[1]/n)*100).toFixed(1) : '0';
+
+  const insights = [
+    { color:'var(--blue)', text: topCircle ? `<strong>${topCircle[0]}</strong> is the most affected circle with <strong>${topCircle[1].toLocaleString()}</strong> grievances — ${((topCircle[1]/n)*100).toFixed(1)}% of all complaints.` : 'No circle data available.' },
+    { color:'var(--purple)', text: topFeeder ? `Top feeder <strong>${topFeeder[0]}</strong> generated <strong>${topFeeder[1].toLocaleString()}</strong> complaints, contributing <strong>${feederPct}%</strong> of total.` : 'No feeder data.' },
+    { color:'var(--red)', text: topType ? `<strong>${topType[0]}</strong> accounts for <strong>${typePct}%</strong> (${topType[1].toLocaleString()}) of all grievances.` : 'No type data.' },
+    { color:'var(--yellow)', text: `Peak complaint day is <strong>${DAYS_AI[peakH]}</strong> with <strong>${peakHCount.toLocaleString()}</strong> registrations.` },
+    { color:'var(--green)', text: topSource ? `<strong>${topSource[0]}</strong> channel contributes <strong>${srcPct}%</strong> (${topSource[1].toLocaleString()}) of all registrations — dominant intake channel.` : 'No source data.' },
+    { color:'var(--accent2)', text: topSub ? `Substation <strong>${topSub[0]}</strong> is the most grievance-intensive with <strong>${topSub[1].toLocaleString()}</strong> complaints.` : 'No substation data.' },
+    { color:'var(--accent)', text: top3Circles.length ? `Top 3 circles (<strong>${top3Circles.map(e=>e[0]).join(', ')}</strong>) together account for <strong>${top3Pct}%</strong> of all grievances.` : 'Insufficient circle data.' },
+    { color:'var(--accent3)', text: topReason ? `Root cause: <strong>${topReason[0]}</strong> is the leading reason with <strong>${topReason[1].toLocaleString()}</strong> occurrences.` : 'No reason data.' },
+    { color:'var(--red)', text: `Average <strong>${(n/days).toLocaleString(undefined,{maximumFractionDigits:0})} grievances/day</strong> registered across <strong>${totalCircles}</strong> circle${totalCircles!==1?'s':''} in the selected period.` },
+  ];
+
+  grid.innerHTML = insights.map(ins =>
+    `<div class="ai-insight" style="--insight-color:${ins.color}">${ins.text}</div>`
+  ).join('');
+}
+
+// ===================== SORTED RANKINGS =====================
+function renderSortedRankings() {
+  const allCircles = !getSlicerVal('sl-circle');
+
+  function render(containerId, field, prefix) {
+    const el = document.getElementById(containerId);
+    if (!el) return;
+    if (!filteredData.length) {
+      el.innerHTML = '<div style="color:var(--text3);font-size:11px;padding:8px 0">No data available</div>';
+      return;
+    }
+
+    // Build frequency map sorted descending
+    const map = {};
+    filteredData.forEach(r => {
+      const v = getCol(r, field);
+      if (!v) return;
+      if (!map[v]) map[v] = { count: 0, circle: getCol(r, 'CIRCLE') };
+      map[v].count++;
+    });
+    const items = Object.entries(map)
+      .map(([name, d]) => ({ name, count: d.count, circle: d.circle }))
+      .sort((a, b) => b.count - a.count);
+
+    if (!items.length) {
+      el.innerHTML = '<div style="color:var(--text3);font-size:11px;padding:8px 0">No data available</div>';
+      return;
+    }
+
+    el.innerHTML = items.map((item, i) => {
+      // Exact format: SECTION : ABIDS (102)
+      // When All Circles: SECTION : ABIDS — Hyderabad Central Circle (102)
+      const circleStr = allCircles && item.circle ? ` — ${item.circle}` : '';
+      const label = `${prefix} : ${item.name}${circleStr} (${item.count.toLocaleString()})`;
+      return `<div style="display:flex;align-items:baseline;gap:6px;border-bottom:1px solid var(--border);padding:5px 0;font-size:11px">
+        <span style="color:var(--text3);font-size:10px;font-weight:700;min-width:20px">${i + 1}</span>
+        <span style="flex:1;color:var(--text2)">${label}</span>
+      </div>`;
+    }).join('');
+  }
+
+  render('sortedSections',    'SECTION',    'SECTION');
+  render('sortedSubstations', 'SUBSTATION', 'SUBSTATION');
+  render('sortedFeeders',     'FEEDER',     'FEEDER');
+  render('sortedStructures',  'STRUCTURE',  'STRUCTURE');
+}
+
+// ===================== TABLE =====================
+let tableData = [];
+function renderTable() {
+  tableData = [...filteredData];
+  if (tableSearchQuery) {
+    const q = tableSearchQuery.toLowerCase();
+    tableData = tableData.filter(r => {
+    const keys = Object.keys(r);
+    for (let i = 0; i < keys.length; i++) {
+      if (String(r[keys[i]]).toLowerCase().includes(q)) return true;
+    }
+    return false;
+  });
+  }
+  if (sortCol) tableData.sort((a,b) => {
+    const av=String(a[sortCol]||'').toLowerCase(), bv=String(b[sortCol]||'').toLowerCase();
+    return av<bv?-sortDir:av>bv?sortDir:0;
+  });
+  currentPage=1; renderPage();
+}
+function renderPage() {
+  const start=(currentPage-1)*PAGE_SIZE;
+  const page=tableData.slice(start,start+PAGE_SIZE);
+  const tbody=document.getElementById('tableBody');
+  if (!tableData.length) {
+    tbody.innerHTML='<tr><td colspan="11" style="text-align:center;padding:30px;color:var(--text3)">No records match your filters</td></tr>';
+  } else {
+    tbody.innerHTML=page.map(r => {
+      const dt=parseDate(r['REGISTERED ON']);
+      const dtStr=dt?dt.toLocaleDateString('en-IN'):(r['REGISTERED ON']||'');
+      return `<tr>
+        <td>${r['SL. NO.']||r['SL.NO']||''}</td>
+        <td style="color:var(--accent)">${r['GRIEVANCE ID']||''}</td>
+        <td>${getCol(r,'CIRCLE')}</td>
+        <td>${getCol(r,'SUBSTATION')}</td>
+        <td>${getCol(r,'SECTION')}</td>
+        <td>${getCol(r,'FEEDER')}</td>
+        <td>${getCol(r,'STRUCTURE')}</td>
+        <td>${getCol(r,'GRIEVANCE TYPE')}</td>
+        <td>${getCol(r,'REASON')}</td>
+        <td>${dtStr}</td>
+        <td>${getCol(r,'SOURCE')}</td>
+      </tr>`;
+    }).join('');
+  }
+  document.getElementById('pageInfo').textContent=tableData.length.toLocaleString()+' record'+(tableData.length!==1?'s':'');
+  renderPagination();
+}
+function renderPagination() {
+  const total=Math.ceil(tableData.length/PAGE_SIZE);
+  const pg=document.getElementById('pagination');
+  if (total<=1){pg.innerHTML='';return;}
+  let html=`<button class="page-btn" onclick="goPage(${Math.max(1,currentPage-1)})" ${currentPage===1?'disabled':''}>‹</button>`;
+  for(let i=Math.max(1,currentPage-2);i<=Math.min(total,currentPage+2);i++)
+    html+=`<button class="page-btn ${i===currentPage?'active':''}" onclick="goPage(${i})">${i}</button>`;
+  html+=`<button class="page-btn" onclick="goPage(${Math.min(total,currentPage+1)})" ${currentPage===total?'disabled':''}>›</button>`;
+  pg.innerHTML=html;
+}
+function goPage(p){currentPage=p;renderPage();}
+function filterTable(){tableSearchQuery=document.getElementById('tableSearch').value;renderTable();}
+function sortTable(col){if(sortCol===col)sortDir*=-1;else{sortCol=col;sortDir=1;}renderTable();}
+
+// ===================== SAMPLE DATA =====================
+// ===================== DOWNLOAD / EXPORT FUNCTIONS =====================
+
+function escCSV(v) {
+  if (v === null || v === undefined) return '';
+  const s = String(v);
+  return s.includes(',') || s.includes('"') || s.includes('\n') ? '"' + s.replace(/"/g, '""') + '"' : s;
+}
+
+function triggerDownload(csvContent, filename) {
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function rowsToCSV(rows, fields) {
+  const header = fields.join(',');
+  const lines = rows.map(r => fields.map(f => escCSV(r[f] || '')).join(','));
+  return [header, ...lines].join('\n');
+}
+
+// Download filtered raw data for a specific field's top item OR all data
+function downloadKPI(type) {
+  if (!filteredData.length) { alert('No data loaded.'); return; }
+  let rows = filteredData;
+  let filename = 'grievances_filtered.csv';
+  const FIELDS = ['SL. NO.','GRIEVANCE ID','UKSCNO','CIRCLE','SUBSTATION','SECTION','FEEDER','STRUCTURE','GRIEVANCE TYPE','REASON','REGISTERED ON','SOURCE'];
+
+  if (type === 'circle') {
+    const top = freq(filteredData, 'CIRCLE')[0];
+    if (top) { rows = filteredData.filter(r => getCol(r,'CIRCLE') === top[0]); filename = `circle_${top[0].replace(/\s+/g,'_')}.csv`; }
+  } else if (type === 'feeder') {
+    const top = freq(filteredData, 'FEEDER')[0];
+    if (top) { rows = filteredData.filter(r => getCol(r,'FEEDER') === top[0]); filename = `feeder_${top[0].replace(/\s+/g,'_').slice(0,40)}.csv`; }
+  } else if (type === 'structure') {
+    const top = freq(filteredData, 'STRUCTURE')[0];
+    if (top) { rows = filteredData.filter(r => getCol(r,'STRUCTURE') === top[0]); filename = `structure_${top[0].replace(/\s+/g,'_').slice(0,40)}.csv`; }
+  } else if (type === 'substation') {
+    const top = freq(filteredData, 'SUBSTATION')[0];
+    if (top) { rows = filteredData.filter(r => getCol(r,'SUBSTATION') === top[0]); filename = `substation_${top[0].replace(/\s+/g,'_').slice(0,40)}.csv`; }
+  } else {
+    filename = `all_grievances_filtered_${new Date().toISOString().slice(0,10)}.csv`;
+  }
+  triggerDownload(rowsToCSV(rows, FIELDS), filename);
+  showToast('✓ Downloaded ' + rows.length.toLocaleString() + ' rows', 'var(--green)');
+}
+
+// Download aggregated summary for charts
+function downloadChart(type) {
+  if (!filteredData.length) { alert('No data loaded.'); return; }
+  let csv = '', filename = '';
+
+  if (type === 'trend') {
+    const grouped = {};
+    filteredData.forEach(r => { const d = parseDate(r['REGISTERED ON']); if (!d) return; const k = d.toISOString().slice(0,10); grouped[k] = (grouped[k]||0)+1; });
+    csv = 'Date,Grievances\n' + Object.entries(grouped).sort().map(([k,v]) => `${k},${v}`).join('\n');
+    filename = 'trend_daily.csv';
+  } else if (type === 'daywise') {
+    const DAYS = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+    const counts = Array(7).fill(0);
+    filteredData.forEach(r => { const d = parseDate(r['REGISTERED ON']); if (d) counts[d.getDay()]++; });
+    csv = 'Day,Grievances\n' + DAYS.map((d,i) => `${d},${counts[i]}`).join('\n');
+    filename = 'day_wise_pattern.csv';
+  } else if (type === 'rootcause') {
+    const rc = freq(filteredData, 'REASON');
+    csv = 'Reason,Count\n' + rc.map(([r,c]) => `${escCSV(r)},${c}`).join('\n');
+    filename = 'root_cause_analysis.csv';
+  } else if (type === 'source') {
+    const src = freq(filteredData, 'SOURCE');
+    const total = src.reduce((s,e) => s+e[1], 0);
+    csv = 'Source,Count,Percentage\n' + src.map(([s,c]) => `${escCSV(s)},${c},${total?(c/total*100).toFixed(1)+'%':''}`).join('\n');
+    filename = 'source_analysis.csv';
+  } else if (type === 'type') {
+    const tf = freq(filteredData, 'GRIEVANCE TYPE');
+    const total = tf.reduce((s,e) => s+e[1], 0);
+    csv = 'Grievance Type,Count,Percentage\n' + tf.map(([t,c]) => `${escCSV(t)},${c},${total?(c/total*100).toFixed(1)+'%':''}`).join('\n');
+    filename = 'grievance_type_distribution.csv';
+  } else if (type === 'circles') {
+    const cf = freq(filteredData, 'CIRCLE');
+    csv = 'Circle,Count\n' + cf.map(([c,n]) => `${escCSV(c)},${n}`).join('\n');
+    filename = 'top_circles.csv';
+  } else if (type === 'heatmap') {
+    const types = [...new Set(filteredData.map(r => getCol(r,'GRIEVANCE TYPE')).filter(Boolean))];
+    const circles = freq(filteredData,'CIRCLE').map(e=>e[0]);
+    const matrix = {};
+    filteredData.forEach(r => {
+      const c = getCol(r,'CIRCLE'), t = getCol(r,'GRIEVANCE TYPE');
+      if (!c||!t) return;
+      if (!matrix[c]) matrix[c] = {};
+      matrix[c][t] = (matrix[c][t]||0)+1;
+    });
+    const header = 'Circle,' + types.map(t => escCSV(t)).join(',');
+    const lines = circles.map(c => escCSV(c) + ',' + types.map(t => (matrix[c]&&matrix[c][t])||0).join(','));
+    csv = [header, ...lines].join('\n');
+    filename = 'heatmap_circle_type.csv';
+  }
+  if (csv) { triggerDownload(csv, filename); showToast('✓ Downloaded ' + filename, 'var(--green)'); }
+}
+
+// Download deep analysis ranked list for a field
+function downloadAnalysis(field) {
+  if (!filteredData.length) { alert('No data loaded.'); return; }
+  const items = freqWithCircle(filteredData, field);
+  const allCircles = !getSlicerVal('sl-circle');
+  const header = allCircles ? `${field},CIRCLE,COUNT` : `${field},COUNT`;
+  const lines = items.map(item => allCircles
+    ? `${escCSV(item.name)},${escCSV(item.circle)},${item.count}`
+    : `${escCSV(item.name)},${item.count}`
+  );
+  const csv = [header, ...lines].join('\n');
+  const filename = `top_${field.toLowerCase()}s.csv`;
+  triggerDownload(csv, filename);
+  showToast('✓ Downloaded ' + items.length + ' ' + field.toLowerCase() + 's', 'var(--green)');
+}
+
+function initEmptyDashboard() {
+  rawData = [];
+  filteredData = [];
+  document.getElementById('recordBadge').textContent = 'No Data';
+  document.getElementById('lastUpdated').textContent = 'Upload an Excel file to begin';
+  document.getElementById('uploadPrompt').style.display = 'flex';
+}
+initEmptyDashboard();
+</script>
+</body>
+</html>
